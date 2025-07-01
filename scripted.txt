@@ -1,3 +1,7 @@
+This is just for copy pasting on the main Jenkinsfile rather than changing paths and making two Jenkinsfile.
+
+
+
 
 node {
     stage('Checkout Code') {
