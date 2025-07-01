@@ -1,0 +1,7 @@
+import requests
+import numpy as np
+
+print("Python script is running!")
+print("Numpy version:", np.__version__)
+response = requests.get("https://api.github.com")
+print("GitHub status:", response.status_code)
