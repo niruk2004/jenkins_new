@@ -8,7 +8,7 @@ pipeline {
     stages {
         stage('Checkout Code') {
             steps {
-                checkout scm
+                git url: 'https://github.com/niruk2004/jenkins_new', branch: 'main'
             }
         }
 
