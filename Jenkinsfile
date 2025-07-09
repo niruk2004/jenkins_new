@@ -1,47 +1,61 @@
-node {
-    def VENV_DIR = "venv"
+pipeline {
+    agent any
 
-    stage('Checkout Code') {
-        checkout scm
+    environment {
+        VENV_DIR = "venv"
     }
 
-    stage('Set Up Python Environment') {
-        sh """
-            python3 -m venv ${VENV_DIR}
-            . ${VENV_DIR}/bin/activate
-            pip install --upgrade pip
-            pip install -r requirements.txt
-        """
+    stages {
+        stage('Checkout Code') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Set Up Python Environment') {
+            steps {
+                sh '''
+                    python3 -m venv ${VENV_DIR}
+                    . ${VENV_DIR}/bin/activate
+                    pip install --upgrade pip
+                    pip install -r requirements.txt
+                '''
+            }
+        }
+
+        stage('Build - Syntax Check') {
+            steps {
+                sh '''
+                    . ${VENV_DIR}/bin/activate
+                    python -m py_compile sources/add2vals.py sources/calc.py
+                '''
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh '''
+                    . ${VENV_DIR}/bin/activate
+                    mkdir -p test-reports
+                    pytest --verbose --junit-xml=test-reports/results.xml sources/test_calc.py
+                '''
+            }
+        }
+
+        stage('Deliver - PyInstaller Build') {
+            steps {
+                sh '''
+                    . ${VENV_DIR}/bin/activate
+                    pyinstaller --onefile sources/add2vals.py
+                '''
+            }
+        }
     }
 
-    stage('Build - Syntax Check') {
-        sh """
-            . ${VENV_DIR}/bin/activate
-            python -m py_compile sources/add2vals.py sources/calc.py
-        """
-    }
-
-    stage('Test') {
-        sh """
-            . ${VENV_DIR}/bin/activate
-            mkdir -p test-reports
-            pytest --verbose --junit-xml=test-reports/results.xml sources/test_calc.py
-        """
-    }
-
-    stage('Deliver - PyInstaller Build') {
-        sh """
-            . ${VENV_DIR}/bin/activate
-            pyinstaller --onefile sources/add2vals.py
-        """
-    }
-
-    // Post-actions (equivalent of declarative `post` block)
-    // Make sure the artifacts exist before archiving
-    try {
-        archiveArtifacts artifacts: 'dist/add2vals', onlyIfSuccessful: true
-        junit 'test-reports/results.xml'
-    } catch (e) {
-        echo "Archiving or JUnit report failed: ${e.getMessage()}"
+    post {
+        always {
+            archiveArtifacts artifacts: 'dist/add2vals', onlyIfSuccessful: true
+            junit 'test-reports/results.xml'
+        }
     }
 }
